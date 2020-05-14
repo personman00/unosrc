@@ -48,7 +48,7 @@ function playerDrawCard(player, num) {
 
 function drawCard(list, num) {
     for(var i = 0; i < num; i++) {
-        var number = intRandom(1,9);
+        var number = intInclusive(1,9);
         list.push({color: intInclusive(0,3), type: weightedRandom({number:0.72, 0:0.04, 10: 0.08, 11:0.08, 12:0.08, 13:0.04})})
     }
     return list;
@@ -128,6 +128,7 @@ io.sockets.on("connection", (socket) => {
     
         socket.emit("topcard", [cards_in_middle[cards_in_middle.length - 1], cards_in_middle[cards_in_middle.length - 2], cards_in_middle[cards_in_middle.length - 3]]);
         socket.emit("playerturn", playerTurn.socket.id);
+        io.sockets.emit("playerdata", players);
         socket.emit("init", newPlayer.socket.id);
     });
 
