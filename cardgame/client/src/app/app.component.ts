@@ -22,6 +22,8 @@ export class AppComponent implements OnInit, AfterViewInit {
   winner: string;
   plus4color = "0";
 
+  playerdata = [];
+
   cards: Card[];
 
   centercards = [{type: -1, color: -1}, {type: -1, color: -1}, {type: -1, color: -1}];
@@ -39,6 +41,7 @@ export class AppComponent implements OnInit, AfterViewInit {
   }
 
   getDisplay(type : number) {
+    console.log(type);
     switch(type) {
       case -1:
         return "";
@@ -146,6 +149,9 @@ export class AppComponent implements OnInit, AfterViewInit {
       this.winner = args;
     });
 
+    this.socket.on("playerdata", (args) => {
+      this.playerdata = args;
+    });
   }
 
   pushButton() {
