@@ -9,29 +9,28 @@ const io = require('socket.io')(http);
     //type = 0;
 
 
-var sockets = [];
-
+var players = [];
 var cards_in_middle = [];
 cards_in_middle = drawCard(cards_in_middle, 1);
 
-var playerTurn = 0;
+
+var playerTurn = undefined;
 var iterationDirection = 1;
 var skip = false;
 
-function addSocket(socket) {
-    removeSocket(socket);
-    sockets.push( { socket: socket.id, cards: [] } );
-    return sockets.length - 1;
-}
-
 function getPlayer(socketId) {
-    for (let index = 0; index < sockets.length; index++) {
-        const element = sockets[index];
-        if(element.socket == socketId) {
+    for (let index = 0; index < players.length; index++) {
+        const element = players[index];
+        if(element.socket.id == socketId) {
             return element;
         }
     }
     return null;
+}
+
+function playerDrawCard(player, num) {
+    player.cards = drawCard(player.cards, num);
+    player.socket.emit("refreshcards", player.cards);
 }
 
 function drawCard(list, num) {
@@ -42,13 +41,15 @@ function drawCard(list, num) {
 }
 
 function iterateTurn() {
-    playerTurn += iterationDirection;
-    playerTurn = playerTurn % sockets.length;
+    playerTurn = playerTurn.next;
+    if(playerTurn == undefined) {
+        playerTurn = players[0];
+    }
     if(skip) {
         skip=false;
         iterateTurn();
     } else {
-        io.sockets.emit("playerturn", playerTurn);
+        io.sockets.emit("playerturn", playerTurn.socket.id);
     }
 }
 
@@ -56,40 +57,83 @@ function getTopCard() {
     return cards_in_middle[cards_in_middle.length-1];
 }
 
+function updateTopCards() {
+    io.sockets.emit("topcard", [cards_in_middle[cards_in_middle.length - 1], cards_in_middle[cards_in_middle.length - 2], cards_in_middle[cards_in_middle.length - 3]]);
+}
+
 function removeSocket(socket) {
+    console.log("removing socket due to disconnect");
     let found = -1;
-    for (let index = 0; index < sockets.length; index++) {
-        const element = sockets[index];
-        if(element.socket == socket) {
+    for (let index = 0; index < players.length; index++) {
+        const element = players[index];
+        console.log(element.socket.id + " " + socket.id + " " + playerTurn.socket.id);
+        if(element.socket.id == socket.id) {
             found = index;
 
-            if(playerTurn >= found) {
-                playerTurn -= 1;
-                io.sockets.emit("playerturn", playerTurn);
+            if(playerTurn.socket.id == socket.id) {
+                console.log("iterating turn because of client disconnect");
+                iterateTurn();
+                //io.sockets.emit("playerturn", playerTurn);
             }
-
             break;
         }
     }
     if(found == -1) {
         return;
     }
-    sockets.splice(found, 1);
+    var player = players[found];    
+    var search = players[0];
+    while(search.next) {
+        if(search.next.socket.id == player.socket.id) {
+            search.next = player.next;
+            break;
+        }
+        search = search.next;
+    }
+    players.splice(found, 1);
 }
 
 io.sockets.on("connection", (socket) => {
     console.log("Client connected");
-    io.sockets.emit("topcard", cards_in_middle[cards_in_middle.length - 1]);
-    io.sockets.emit("playerturn", playerTurn);
-    socket.emit("init", addSocket(socket));
-    socket.emit("drawcard", drawCard([], 7));
+    
+    var topPlayer = players[players.length-1]; //Player w out next
+    var newPlayer = {cards: [], socket: socket, next: undefined};
+    players.push(newPlayer);
+
+    if(!playerTurn) {
+        playerTurn = newPlayer;
+    }
+
+    if(topPlayer) {
+       topPlayer.next = newPlayer;
+    }
+
+    playerDrawCard(newPlayer, 7);
+
+    io.sockets.emit("topcard", [cards_in_middle[cards_in_middle.length - 1], cards_in_middle[cards_in_middle.length - 2], cards_in_middle[cards_in_middle.length - 3]]);
+    io.sockets.emit("playerturn", playerTurn.socket.id);
+    socket.emit("init", newPlayer.socket.id);
+    //socket.emit("drawcard", drawCard([], 7));
+
+    socket.on("movecards", (arg) => {
+
+        let player = getPlayer(socket.id);
+
+        let cards = [];
+        for(var i = 0; i < arg.length; i++) {
+            cards.push(player.cards[arg[i]]);
+        }
+
+    })
 
     socket.on("reqdraw", (arg) => {
 
-        if(sockets[playerTurn].socket == socket.id) {
+        if(playerTurn.socket.id == socket.id) {
             let drawn_card = drawCard([], 1)[0];
             let top_card = getTopCard();
-            socket.emit("drawcard", [drawn_card]);
+            playerTurn.cards.push(drawn_card);
+            socket.emit("refreshcards", playerTurn.cards);
+            //socket.emit("drawcard", [drawn_card]);
             if(drawn_card.type == top_card.type || drawn_card.color == top_card.color) {
                 return;
             }
@@ -99,18 +143,31 @@ io.sockets.on("connection", (socket) => {
     });
 
     socket.on("tryput", (obj) => {
-        let card = obj.card;
-        let length = obj.length;
+        let card_pos = obj.card;
+        let player = getPlayer(socket.id);
+        let card = player.cards[card_pos];
+        let scolor = obj.special_color;
+        let topcard = cards_in_middle[cards_in_middle.length - 1];
         //var player = getPlayer(socket.id);
-        if(sockets[playerTurn].socket != socket.id) {
+        if((card.type != topcard.type || card.color != topcard.color) && (playerTurn.socket.id != socket.id)) {
             socket.emit("canput", false);
             return;
         }
-        topcard = cards_in_middle[cards_in_middle.length - 1];
+        
         if(topcard.color == card.color || topcard.type == card.type || card.type == 13) {
             socket.emit("canput", true);
+            if(player.socket.id != playerTurn.socket.id) {
+                playerTurn = player;
+            }
+            player.cards.splice(card_pos, 1);
+            player.socket.emit("refreshcards", player.cards);
+            if(card.type == 13) {
+                card.color = scolor;
+            }
+
             cards_in_middle.push(card);
-            io.sockets.emit("topcard", cards_in_middle[cards_in_middle.length - 1]);
+            updateTopCards();
+            //io.sockets.emit("topcard", cards_in_middle[cards_in_middle.length - 1]);
 
             if(card.type == 10) {
                 iterationDirection *= -1;
@@ -118,21 +175,23 @@ io.sockets.on("connection", (socket) => {
                 skip=true;
             }
 
-            if(length <= 1) {
-                io.sockets.emit("playerwon", playerTurn);
+            if(player.cards.length < 1) {
+                io.sockets.emit("playerwon", player.socket.id);
                 return;
             }
 
-            iterateTurn();
+            if(card.type == 11 || card.type == 13) {
+                playerDrawCard(player.next ? player.next : players[0], card.type == 11 ? 2 : 4);
+            }
 
-            if(card.type == 11 || card.type == 13) {io.sockets.connected[sockets[playerTurn].socket].emit("drawcard", drawCard([], card.type == 13 ? 4 : 2))};
+            iterateTurn();
 
         } else {
             socket.emit("canput", false);
         }
     });
 
-    socket.on("disconnect", (socket) => { 
+    socket.on("disconnect", () => { 
         console.log("client disconnected");
         removeSocket(socket);
     });

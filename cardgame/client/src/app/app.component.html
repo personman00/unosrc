@@ -3,7 +3,9 @@
     <div *ngIf="winner">{{winner == playerId ? "You won!" : "You lost..." }}</div>
     <button (click)="pushButton()">Draw</button>
     <div cdkDropListGroup>
-        <div *ngIf="centercard" class="card" cdkDropList (cdkDropListDropped)="drop_center($event)" [ngStyle]="{'background-color': getColor(centercard.color, 0.3)}">{{getDisplay(centercard.type)}}</div>
+        <span class="cardcontainercenter">
+            <div *ngFor="let centercard of centercards" class="card" cdkDropList (cdkDropListDropped)="drop_center($event)" [ngStyle]="{'background-color': getColor(centercard.color, 0.3)}">{{getDisplay(centercard.type)}}</div>
+        </span>
         <div cdkDropListOrientation="horizontal" class="cardcontainer" cdkDropList (cdkDropListDropped)="drop($event)">
             <div class="card" *ngFor="let c of cards" cdkDrag  [ngStyle]="{'background-color': getColor(c.color, 0.3)}">{{getDisplay(c.type)}}</div>
         </div>
