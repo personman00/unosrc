@@ -149,6 +149,12 @@ io.sockets.on("connection", (socket) => {
         let scolor = obj.special_color;
         let topcard = cards_in_middle[cards_in_middle.length - 1];
         //var player = getPlayer(socket.id);
+
+        if(!playerTurn.socket.connected) {
+            removeSocket(playerTurn.socket);
+            return;
+        }
+
         if((card.type != topcard.type || card.color != topcard.color) && (playerTurn.socket.id != socket.id)) {
             socket.emit("canput", false);
             return;
