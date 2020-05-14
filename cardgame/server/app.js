@@ -79,7 +79,7 @@ function removeSocket(socket) {
         }
     }
     if(found == -1) {
-        return;
+        return found;
     }
     var player = players[found];    
     var search = players[0];
@@ -91,6 +91,7 @@ function removeSocket(socket) {
         search = search.next;
     }
     players.splice(found, 1);
+    return found;
 }
 
 io.sockets.on("connection", (socket) => {
@@ -110,8 +111,8 @@ io.sockets.on("connection", (socket) => {
 
     playerDrawCard(newPlayer, 7);
 
-    io.sockets.emit("topcard", [cards_in_middle[cards_in_middle.length - 1], cards_in_middle[cards_in_middle.length - 2], cards_in_middle[cards_in_middle.length - 3]]);
-    io.sockets.emit("playerturn", playerTurn.socket.id);
+    socket.emit("topcard", [cards_in_middle[cards_in_middle.length - 1], cards_in_middle[cards_in_middle.length - 2], cards_in_middle[cards_in_middle.length - 3]]);
+    socket.emit("playerturn", playerTurn.socket.id);
     socket.emit("init", newPlayer.socket.id);
     //socket.emit("drawcard", drawCard([], 7));
 
@@ -151,7 +152,10 @@ io.sockets.on("connection", (socket) => {
         //var player = getPlayer(socket.id);
 
         if(!playerTurn.socket.connected) {
-            removeSocket(playerTurn.socket);
+            var a = removeSocket(playerTurn.socket);
+            if(a == -1) {
+                playerTurn = players[0];
+            }
             return;
         }
 
@@ -199,7 +203,10 @@ io.sockets.on("connection", (socket) => {
 
     socket.on("disconnect", () => { 
         console.log("client disconnected");
-        removeSocket(socket);
+        var a = removeSocket(socket);
+        if(a == -1) {
+            playerTurn = players[0];
+        }
     });
 
 });
