@@ -184,7 +184,9 @@ io.sockets.on("connection", (socket) => {
             }
             return;
         }
-
+        if(card == null) {
+            return;
+        }
         if((card.type != topcard.type || card.color != topcard.color) && (playerTurn.socket.id != socket.id)) {
             socket.emit("canput", false);
             return;
@@ -215,7 +217,8 @@ io.sockets.on("connection", (socket) => {
                 io.sockets.emit("playerwon", player.socket.id);
 
                 setTimeout(function(){
-                    cards_in_middle = [];
+                    cards_in_middle = drawCard([], 1);
+                    iterationDirection = 1;
                     players = [];
                     io.sockets.emit("init", undefined);
                 }, 10000);
