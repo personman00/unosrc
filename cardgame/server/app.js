@@ -49,7 +49,9 @@ function playerDrawCard(player, num) {
 function drawCard(list, num) {
     for(var i = 0; i < num; i++) {
         var number = intInclusive(1,9);
-        list.push({color: intInclusive(0,3), type: weightedRandom({number:0.72, 0:0.04, 10: 0.08, 11:0.08, 12:0.08, 13:0.04})})
+        var selection = { 0:0.04, 10: 0.08, 11:0.08, 12:0.08, 13:0.04 };
+        selection[number] = .72;
+        list.push({color: intInclusive(0,3), type: weightedRandom(selection)})
     }
     return list;
 }
@@ -64,6 +66,9 @@ function iterateTurn() {
         iterateTurn();
     } else {
         io.sockets.emit("playerturn", playerTurn.socket.id);
+        io.sockets.emit("playerdata", players.map(a => {
+            return {name: a.name, cards: a.cards};
+        }));
     }
 }
 
@@ -112,11 +117,12 @@ io.sockets.on("connection", (socket) => {
     console.log("Client connected");
     
     socket.on("joingame", (args) => {
+        console.log("player joining game with name " + args);
         var topPlayer = players[players.length-1]; //Player w out next
         var newPlayer = {name: args, cards: [], socket: socket, next: undefined};
         players.push(newPlayer);
     
-        if(!playerTurn) {
+        if(!playerTurn || !playerTurn.socket) {
             playerTurn = newPlayer;
         }
     
@@ -128,7 +134,9 @@ io.sockets.on("connection", (socket) => {
     
         socket.emit("topcard", [cards_in_middle[cards_in_middle.length - 1], cards_in_middle[cards_in_middle.length - 2], cards_in_middle[cards_in_middle.length - 3]]);
         socket.emit("playerturn", playerTurn.socket.id);
-        io.sockets.emit("playerdata", players);
+        io.sockets.emit("playerdata", players.map(a => {
+            return {name: a.name, cards: a.cards};
+        }));
         socket.emit("init", newPlayer.socket.id);
     });
 
@@ -205,6 +213,13 @@ io.sockets.on("connection", (socket) => {
 
             if(player.cards.length < 1) {
                 io.sockets.emit("playerwon", player.socket.id);
+
+                setTimeout(function(){
+                    cards_in_middle = [];
+                    players = [];
+                    io.sockets.emit("init", undefined);
+                }, 10000);
+
                 return;
             }
 
@@ -237,7 +252,7 @@ io.sockets.on("connection", (socket) => {
     socket.on("disconnect", () => { 
         console.log("client disconnected");
         var a = removeSocket(socket);
-        if(a == -1) {
+        if(a == -1 && players.length > 0) {
             playerTurn = players[0];
             io.sockets.emit("playerturn", playerTurn.socket.id);
         }
