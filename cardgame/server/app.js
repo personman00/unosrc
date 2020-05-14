@@ -10,6 +10,7 @@ const io = require('socket.io')(http);
 
 
 var players = [];
+var drawBuffer = 0;
 var cards_in_middle = [];
 cards_in_middle = drawCard(cards_in_middle, 1);
 
@@ -28,6 +29,10 @@ function getPlayer(socketId) {
     return null;
 }
 
+function intInclusive(min, max) {
+    return Math.floor(Math.random() * (max - min +1)) + min;
+}
+
 function playerDrawCard(player, num) {
     player.cards = drawCard(player.cards, num);
     player.socket.emit("refreshcards", player.cards);
@@ -35,7 +40,7 @@ function playerDrawCard(player, num) {
 
 function drawCard(list, num) {
     for(var i = 0; i < num; i++) {
-         list.push({color: Math.floor(Math.random() * 4), type: Math.floor(1 + Math.random() * 13)})
+         list.push({color: intInclusive(0,3), type: intInclusive(1,13)})
     }
     return list;
 }
@@ -190,7 +195,22 @@ io.sockets.on("connection", (socket) => {
             }
 
             if(card.type == 11 || card.type == 13) {
-                playerDrawCard(player.next ? player.next : players[0], card.type == 11 ? 2 : 4);
+                let nextPlayer = player.next ? player.next : players[0];
+                for (let index = 0; index < nextPlayer.cards.length; index++) {
+                    const element = nextPlayer.cards[index];
+                    if(element.type == card.type) {
+                        this.drawBuffer += card.type == 11 ? 2 : 4;
+                        iterateTurn();
+                        return;
+                    }
+                }  
+                playerDrawCard(player.next ? player.next : players[0], card.type == 11 ? 2 + drawBuffer : 4 + drawBuffer);
+                skip = true;
+            } else {
+                if(drawBuffer > 0) {
+                    playerDrawCard(player, drawBuffer);
+                    drawBuffer = 0;
+                }
             }
 
             iterateTurn();
