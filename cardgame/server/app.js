@@ -57,8 +57,24 @@ function getTopCard() {
 }
 
 function removeSocket(socket) {
-    sockets = sockets.filter((a) => a.socket != socket.id);
-    console.log("sockets: " + sockets);
+    let found = -1;
+    for (let index = 0; index < sockets.length; index++) {
+        const element = sockets[index];
+        if(element.socket == socket) {
+            found = index;
+
+            if(playerTurn >= found) {
+                playerTurn -= 1;
+                io.sockets.emit("playerturn", playerTurn);
+            }
+
+            break;
+        }
+    }
+    if(found == -1) {
+        return;
+    }
+    sockets.splice(found, 1);
 }
 
 io.sockets.on("connection", (socket) => {
@@ -69,12 +85,6 @@ io.sockets.on("connection", (socket) => {
     socket.emit("drawcard", drawCard([], 7));
 
     socket.on("reqdraw", (arg) => {
-
-        if(playerTurn >= sockets.length) {
-            playerTurn = sockets.length - 1;
-            io.sockets.emit("playerturn", playerTurn);
-            return;
-        }
 
         if(sockets[playerTurn].socket == socket.id) {
             let drawn_card = drawCard([], 1)[0];
