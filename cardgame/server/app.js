@@ -19,6 +19,14 @@ var playerTurn = undefined;
 var iterationDirection = 1;
 var skip = false;
 
+function weightedRandom(prob) {
+    let i, sum=0, r=Math.random();
+    for (i in prob) {
+      sum += prob[i];
+      if (r <= sum) return i;
+    }
+  }
+
 function getPlayer(socketId) {
     for (let index = 0; index < players.length; index++) {
         const element = players[index];
@@ -40,7 +48,8 @@ function playerDrawCard(player, num) {
 
 function drawCard(list, num) {
     for(var i = 0; i < num; i++) {
-         list.push({color: intInclusive(0,3), type: intInclusive(1,13)})
+        var number = intRandom(1,9);
+        list.push({color: intInclusive(0,3), type: weightedRandom({number:0.72, 0:0.04, 10: 0.08, 11:0.08, 12:0.08, 13:0.04})})
     }
     return list;
 }
@@ -102,23 +111,27 @@ function removeSocket(socket) {
 io.sockets.on("connection", (socket) => {
     console.log("Client connected");
     
-    var topPlayer = players[players.length-1]; //Player w out next
-    var newPlayer = {cards: [], socket: socket, next: undefined};
-    players.push(newPlayer);
+    socket.on("joingame", (args) => {
+        var topPlayer = players[players.length-1]; //Player w out next
+        var newPlayer = {name: args, cards: [], socket: socket, next: undefined};
+        players.push(newPlayer);
+    
+        if(!playerTurn) {
+            playerTurn = newPlayer;
+        }
+    
+        if(topPlayer) {
+           topPlayer.next = newPlayer;
+        }
+    
+        playerDrawCard(newPlayer, 7);
+    
+        socket.emit("topcard", [cards_in_middle[cards_in_middle.length - 1], cards_in_middle[cards_in_middle.length - 2], cards_in_middle[cards_in_middle.length - 3]]);
+        socket.emit("playerturn", playerTurn.socket.id);
+        socket.emit("init", newPlayer.socket.id);
+    });
 
-    if(!playerTurn) {
-        playerTurn = newPlayer;
-    }
 
-    if(topPlayer) {
-       topPlayer.next = newPlayer;
-    }
-
-    playerDrawCard(newPlayer, 7);
-
-    socket.emit("topcard", [cards_in_middle[cards_in_middle.length - 1], cards_in_middle[cards_in_middle.length - 2], cards_in_middle[cards_in_middle.length - 3]]);
-    socket.emit("playerturn", playerTurn.socket.id);
-    socket.emit("init", newPlayer.socket.id);
     //socket.emit("drawcard", drawCard([], 7));
 
     socket.on("movecards", (arg) => {

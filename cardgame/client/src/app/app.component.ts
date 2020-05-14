@@ -31,6 +31,13 @@ export class AppComponent implements OnInit, AfterViewInit {
   ngOnInit() {
   }
 
+  playerName: string;
+
+  changeName(name: string) {
+    this.playerName = name;
+    if(this.playerId) {this.socket.emit("playername", name);}
+  }
+
   getDisplay(type : number) {
     switch(type) {
       case -1:
@@ -45,6 +52,10 @@ export class AppComponent implements OnInit, AfterViewInit {
         return "Draw 4";
     }
     return type;
+  }
+
+  joinGame() {
+    this.socket.emit("joingame", this.playerName);
   }
 
   getColor(value : number, opacity : number) {
