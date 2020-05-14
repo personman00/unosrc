@@ -7,7 +7,8 @@ import { AppComponent } from './app.component';
 import { SocketIoModule, SocketIoConfig } from 'ngx-socket-io';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
-const config: SocketIoConfig = { url: 'http://72.92.52.129:3000', options: {} };
+const config: SocketIoConfig = { url: 'https://unoserver.herokuapp.com', options: {} };
+//const config: SocketIoConfig = { url: 'localhost:3000', options: {} };
 @NgModule({
   declarations: [
     AppComponent

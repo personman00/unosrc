@@ -97,7 +97,7 @@ io.sockets.on("connection", (socket) => {
             return;
         }
         topcard = cards_in_middle[cards_in_middle.length - 1];
-        if(topcard.color == card.color || topcard.type == card.type) {
+        if(topcard.color == card.color || topcard.type == card.type || card.type == 13) {
             socket.emit("canput", true);
             cards_in_middle.push(card);
             io.sockets.emit("topcard", cards_in_middle[cards_in_middle.length - 1]);
@@ -115,7 +115,7 @@ io.sockets.on("connection", (socket) => {
 
             iterateTurn();
 
-            if(card.type == 11) {io.sockets.connected[sockets[playerTurn].socket].emit("drawcard", drawCard([], 2))};
+            if(card.type == 11 || card.type == 13) {io.sockets.connected[sockets[playerTurn].socket].emit("drawcard", drawCard([], card.type == 13 ? 4 : 2))};
 
         } else {
             socket.emit("canput", false);
@@ -130,5 +130,7 @@ io.sockets.on("connection", (socket) => {
 });
 
 http.listen(process.env.PORT || 3000, function() {
+
+//http.listen( 3000, '0.0.0.0', function() {
     console.log("Listening");    
 });

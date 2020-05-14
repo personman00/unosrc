@@ -20,6 +20,7 @@ export class AppComponent implements OnInit, AfterViewInit {
   currentTurn : number;
 
   winner: number;
+  plus4color = "0";
 
   cards: Card[];
 
@@ -60,7 +61,12 @@ export class AppComponent implements OnInit, AfterViewInit {
   }
 
   drop_center(event : CdkDragDrop<any>) {
-    this.socket.emit("tryput", {card: this.cards[event.previousIndex], length: this.cards.length});
+    let thecard = this.cards[event.previousIndex];
+    if(thecard.type == 13) {
+      thecard.color = parseInt(this.plus4color);
+    }
+
+    this.socket.emit("tryput", {card: thecard, length: this.cards.length});
     this.socket.once("canput", (ret) => {
       if(ret) {
         this.cards.splice(event.previousIndex, 1);
