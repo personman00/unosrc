@@ -1,0 +1,38 @@
+html {
+    background: gray;
+}
+
+button {
+    opacity: 0.2;
+    background: green;
+}
+
+.cardcontainer {
+    width: 1000px;
+    max-width: 100%;
+    min-height: 100px;
+    display: flex;
+    flex-direction: row;
+    background: white;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.cdk-drag-preview {
+    opacity: 0;
+}
+
+.card {
+    padding: 20px 10px;
+    color: rgba(0, 0, 0, 0.87);
+    align-items: normal;
+    justify-content: space-between;
+    outline: black solid 1px;
+    box-sizing: border-box;
+    cursor: move;
+    background: white;
+    font-size: 14px;
+    flex-grow: 0;
+    flex-basis: 66px;
+    text-align: center;
+}
