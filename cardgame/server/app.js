@@ -127,7 +127,6 @@ io.sockets.on("connection", (socket) => {
     })
 
     socket.on("reqdraw", (arg) => {
-
         if(playerTurn.socket.id == socket.id) {
             let drawn_card = drawCard([], 1)[0];
             let top_card = getTopCard();
@@ -154,6 +153,7 @@ io.sockets.on("connection", (socket) => {
             var a = removeSocket(playerTurn.socket);
             if(a == -1) {
                 playerTurn = players[0];
+                io.sockets.emit("playerturn", playerTurn.socket.id);
             }
             return;
         }
@@ -205,6 +205,7 @@ io.sockets.on("connection", (socket) => {
         var a = removeSocket(socket);
         if(a == -1) {
             playerTurn = players[0];
+            io.sockets.emit("playerturn", playerTurn.socket.id);
         }
     });
 
