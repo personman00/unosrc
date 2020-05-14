@@ -117,14 +117,13 @@ io.sockets.on("connection", (socket) => {
     //socket.emit("drawcard", drawCard([], 7));
 
     socket.on("movecards", (arg) => {
-
         let player = getPlayer(socket.id);
 
         let cards = [];
         for(var i = 0; i < arg.length; i++) {
             cards.push(player.cards[arg[i]]);
         }
-
+        player.cards = cards;
     })
 
     socket.on("reqdraw", (arg) => {
